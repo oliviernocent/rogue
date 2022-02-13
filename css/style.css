@@ -1,0 +1,136 @@
+body {
+  margin: 0;
+  padding: 0;
+  background-color: rgb(30, 30, 30);
+  color: rgb(204, 204, 204);
+  font-family: monospace;
+  font-size: 16px;
+}
+
+main {
+  box-sizing: border-box;
+  height: 100vh;
+  width: 320px;
+  padding: 12px 6px 12px 6px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+pre {
+  margin: 12px 0 12px 0;
+}
+
+#surface {
+  min-height: 240px;
+  margin-bottom: 0;
+}
+
+#controls > div {
+  height: 50px;
+}
+
+#controls span { 
+  width: 40px;
+  height: 40px;
+  display: inline-block;
+  text-align: center;
+  box-sizing: border-box;
+  padding: 7px;
+}  
+
+#up, #right, #down, #left, #help {
+  border: 1px solid rgb(119, 119, 119);
+  border-radius: 4px; 
+}
+
+#status {
+  display: none;
+  flex-grow: 1;
+  overflow-y: scroll;
+}
+
+.fire1 {
+  color:rgb(157, 43, 1);
+}
+
+.fire2 {
+  color:rgb(210, 56, 0);
+}
+
+.fire3 {
+  color:rgb(255, 73, 7);
+}
+
+.fire4 {
+  color:rgb(255, 123, 7);
+}
+
+.fire5 {
+  color:rgb(255, 168, 7);
+}
+
+.fire6 {
+  color:rgb(255, 197, 7);
+}
+
+.fire7 {
+  color:rgb(255, 226, 7);
+}
+
+.fire8 {
+  color:rgb(255, 238, 105);
+}
+
+.fire9 {
+  color:rgb(255, 244, 162);
+}
+
+#surface {
+  color: rgb(119, 119, 119);
+  text-shadow: rgb(35, 37, 41) 2px 2px 4px;
+}
+
+#player {
+  color: rgb(255, 214, 143);
+}
+
+#portal {
+  color: rgb(97, 208, 255);
+}
+
+.monster {
+  color: rgb(104, 70, 29);
+}
+
+.bones {
+  color: white;
+}
+
+.gem {
+  color: rgb(131, 210, 42);
+}
+
+.heart {
+  color: rgb(255, 68, 0);
+}
+
+.ring, .magic-sword {
+  color: rgb(203, 203, 65);
+}
+
+.sword {
+  color: rgb(220, 220, 220);
+}
+
+.pebble {
+  color:rgb(255, 123, 7)
+}
+.game-over {
+  color:rgb(157, 43, 1);
+}
+
+a:link, a:hover, a:active, a:visited {
+  color: rgb(81, 154, 186);
+  text-decoration: underline;
+}

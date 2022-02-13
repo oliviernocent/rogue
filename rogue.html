@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <title>Rogue</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="A JavaScript tribute to roguelike games">
+  <meta name="keywords" content="roguelike, ascii, game">
+  <meta name="author" content="Olivier Nocent">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+  <main>
+    <div>
+      Stamina: <span id="stamina"></span>
+      <br>
+      Mana: <span id="mana"></span>
+      <br>
+      Skill: <span id="skill">14</span>&nbsp;&nbsp;&nbsp;&nbsp;Damage: +<span id="damage">0</span>
+      <br>
+      <br>
+      Level: <span id="level">1</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Gems: <span id="gems">0</span>
+    </div>
+
+    <pre id="surface"></pre>
+
+    <div id="controls">
+      <div>
+        <span></span>
+        <span id="up"></span>
+      </div>
+      <div>
+        <span id="left"></span>
+        <span id="down"></span>
+        <span id="right"></span>
+        <span></span>
+        <span id="help"></span><br>
+      </div>
+    </div>
+
+    <div id="status">
+      <p>
+        &larr; &uarr; &darr; &rarr; : move your character
+      </p>
+      <p>
+        h : yell for help
+      </p>
+    </div>
+  </main>
+  <script src="js/maze.class.js"></script>
+  <script src="js/map.class.js"></script>
+  <script src="js/camera.class.js"></script>
+  <script src="js/renderer.class.js"></script>
+  <script src="js/entity.class.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      let maze, map, surface = document.querySelector('#surface'), status = document.querySelector('#status');
+      let col = 5, row = 5;
+      let level = 1, monsters, monsterCount = 0, collectibles, heartCount = 0, gemCount = 1;
+
+      let player = new Player();
+      let portal = new Portal(col, row);
+
+      let textRenderer = new TextRenderer();
+      let camera = new Camera(7, 7);
+      camera.attachTo(player);
+
+      function isTouchEnabled() {
+        return ('ontouchstart' in window) ||
+          (navigator.maxTouchPoints > 0) ||
+          (navigator.msMaxTouchPoints > 0);
+      }
+
+      function drawStamina() {
+        let heartCount = Math.floor(player.stamina / 2) + player.stamina % 2;
+        let html = '';
+        for (let k = 0; k < heartCount; k++)
+          html += '<span class="heart">&hearts;</span>';
+        document.querySelector('#stamina').innerHTML = html;
+      }
+
+      function drawMana() {
+        let html = '';
+        for (let k = 0; k < player.mana; k++)
+          html += '<span class="ring">o</span>';
+        document.querySelector('#mana').innerHTML = html;
+      }
+
+      function drawMap() {
+        drawStamina();
+        drawMana();
+        document.querySelector('#damage').textContent = player.damage;
+        document.querySelector('#gems').textContent = player.gems;
+
+        for (let item of collectibles) map.setCellContent(item.x, item.y, item.id);
+        for (let monster of monsters) map.setCellContent(monster.x, monster.y, monster.id);
+        map.setCellContent(col, row, portal.id);
+        map.setCellContent(player.x, player.y, player.id);
+        textRenderer.render(map, camera, surface);
+      }
+
+      function init() {
+        maze = new Maze(col, row);
+        //maze.binaryTree();
+        //maze.sideWinder();
+        maze.backTracker();
+
+        map = new Map(maze)
+
+        drawStamina();
+        drawMana();
+        document.querySelector('#skill').textContent = player.skill;
+        document.querySelector('#damage').textContent = player.damage;
+
+        monsters = [];
+        for (let k = 0; k < monsterCount; k++) {
+          let loc = map.randomLocation();
+
+          let monster = new Monster(loc.x, loc.y);
+          monsters.push(monster);
+
+          map.setCellContent(monster.x, monster.y, monster.id);
+        }
+
+        collectibles = [];
+
+        if (level >= 6) {
+          let loc = map.randomLocation();
+
+          let sword = new MagicSword(loc.x, loc.y);
+          collectibles.push(sword);
+
+          map.setCellContent(sword.x, sword.y, sword.id);
+        }
+        else if (level >= 3) {
+          let loc = map.randomLocation();
+
+          let sword = new Sword(loc.x, loc.y);
+          collectibles.push(sword);
+
+          map.setCellContent(sword.x, sword.y, sword.id);
+        }
+        let loc = map.randomLocation();
+
+        let ring = new MagicRing(loc.x, loc.y);
+        collectibles.push(ring);
+
+        map.setCellContent(ring.x, ring.y, ring.id);
+
+        for (let k = 0; k < gemCount; k++) {
+          let loc = map.randomLocation();
+
+          let gem = new Gem(loc.x, loc.y);
+          collectibles.push(gem);
+
+          map.setCellContent(gem.x, gem.y, gem.id);
+        }
+
+        for (let k = 0; k < heartCount; k++) {
+          let loc = map.randomLocation();
+
+          let heart = new Heart(loc.x, loc.y);
+          collectibles.push(heart);
+
+          map.setCellContent(heart.x, heart.y, heart.id);
+        }
+      }
+
+      function update() {
+        for (let monster of monsters) {
+          if (monster.isAlive()) {
+            let path = maze.computePath(monster.x, monster.y, player.x, player.y);
+
+            if (path.length > 1) {
+              map.setCellContent(monster.x, monster.y, 0);
+              monster.moveTo(path[1].x, path[1].y);
+            }
+            else {
+              player.attack(monster);
+              if (player.isDead()) gameOver();
+            }
+          }
+        }
+
+        drawMap();
+        window.setTimeout(update, 500);
+      }
+
+      function nextLevel() {
+        document.querySelector('#level').textContent = ++level;
+
+        status.innerHTML = `
+          <p>
+            You reached the level ${level}.
+          </p>
+          ${status.innerHTML}
+        `;
+
+        col = 5 * level;
+        row = 5 * level;
+        if (row > 15) row = 15;
+
+        player.moveTo(1, 1);
+        portal.moveTo(col, row);
+
+        monsterCount = (level - 1) * 2;
+        heartCount = (level - 1) * 2;
+        gemCount = level * 3;
+
+        init();
+      }
+
+      function moveUp() {
+        if (!maze.cell(player.x, player.y).wall['N']) {
+          map.setCellContent(player.x, player.y, 0);
+          player.moveTo(player.x, player.y - 1);
+        }
+      }
+
+      function moveRight() {
+        if (!maze.cell(player.x, player.y).wall['E']) {
+          map.setCellContent(player.x, player.y, 0);
+          player.moveTo(player.x + 1, player.y);
+        }
+      }
+
+      function moveDown() {
+        if (!maze.cell(player.x, player.y).wall['S']) {
+          map.setCellContent(player.x, player.y, 0);
+          player.moveTo(player.x, player.y + 1);
+        }
+      }
+
+      function moveLeft() {
+        if (!maze.cell(player.x, player.y).wall['W']) {
+          map.setCellContent(player.x, player.y, 0);
+          player.moveTo(player.x - 1, player.y);
+        }
+      }
+
+      function highlightPath() {
+        if (player.mana > 0) {
+          player.mana--;
+          let id = new Pebble().id;
+          maze.computePath(maze.col, maze.row, player.x, player.y).forEach(point => map.setCellContent(point.x, point.y, id));
+        }
+      }
+
+      function checkItems() {
+        for (let i in collectibles) {
+          if (player.x === collectibles[i].x && player.y === collectibles[i].y) {
+            status.innerHTML = `
+                <p>You picked up a ${collectibles[i].description()}.</p>
+                ${status.innerHTML}
+              `;
+            collectibles[i].isTakenBy(player);
+            collectibles.splice(i, 1);
+          }
+        }
+      }
+
+      function gameOver() {
+        collectibles = [];
+        monsters = [];
+
+        status.innerHTML = `
+          <pre class="game-over">+-+-+-+-+ +-+-+-+-+
+|G|a|m|e| |O|v|e|r|
++-+-+-+-+ +-+-+-+-+</pre>
+          ${status.innerHTML}
+        `;
+      }
+
+      document.addEventListener('keydown', (event) => {
+        if (player.isAlive()) {
+          switch (event.key) {
+            case 'ArrowUp': moveUp(); break;
+            case 'ArrowRight': moveRight(); break;
+            case 'ArrowDown': moveDown(); break;
+            case 'ArrowLeft': moveLeft(); break;
+            case 'h': highlightPath();
+          }
+
+          checkItems();
+          drawMap();
+
+          if (player.x === maze.col && player.y === maze.row) {
+            nextLevel();
+          }
+        }
+      });
+
+      document.querySelector('#up').addEventListener('click', (event) => {
+        if (player.isAlive()) {
+          moveUp();
+          checkItems();
+          drawMap();
+
+          if (player.x === maze.col && player.y === maze.row) {
+            nextLevel();
+          }
+        }
+      });
+
+      document.querySelector('#right').addEventListener('click', (event) => {
+        if (player.isAlive()) {
+          moveRight();
+          checkItems();
+          drawMap();
+
+          if (player.x === maze.col && player.y === maze.row) {
+            nextLevel();
+          }
+        }
+      });
+
+      document.querySelector('#down').addEventListener('click', (event) => {
+        if (player.isAlive()) {
+          moveDown();
+          checkItems();
+          drawMap();
+
+          if (player.x === maze.col && player.y === maze.row) {
+            nextLevel();
+          }
+        }
+      });
+
+      document.querySelector('#left').addEventListener('click', (event) => {
+        if (player.isAlive()) {
+          moveLeft();
+          checkItems();
+          drawMap();
+
+          if (player.x === maze.col && player.y === maze.row) {
+            nextLevel();
+          }
+        }
+      });
+
+      document.querySelector('#help').addEventListener('click', (event) => {
+        if (player.isAlive()) {
+          highlightPath();
+          drawMap();
+        }
+      });
+
+      if (!isTouchEnabled()) {
+        document.querySelector('#controls').style.display = 'none';
+        document.querySelector('#status').style.display = 'block';
+      }
+      init();
+      update();
+    });
+  </script>
+</body>
+
+</html>
